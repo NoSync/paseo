@@ -295,8 +295,23 @@ function parseMockQuestionPrompt(prompt: AgentPromptInput): MockQuestionPromptRe
           question:
             "Sign in at https://example.com/login, then follow [the setup guide](https://example.com/setup). Done?",
           header: "signIn",
-          options: [{ label: "Done" }, { label: "Not yet" }],
+          options: [
+            {
+              label: "Done",
+              description: "Logs are at https://example.com/logs if sign-in fails.",
+            },
+            { label: "Not yet, see [status](https://example.com/status)" },
+          ],
           multiSelect: false,
+        },
+        {
+          question: "Which checks should run?",
+          header: "checks",
+          options: [
+            { label: "Lint", description: "Rules: https://example.com/lint" },
+            { label: "Typecheck" },
+          ],
+          multiSelect: true,
         },
       ],
     };
