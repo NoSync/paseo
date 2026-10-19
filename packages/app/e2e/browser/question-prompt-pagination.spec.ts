@@ -1,6 +1,6 @@
 import { fork } from "node:child_process";
 import path from "node:path";
-import { expect } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { z } from "zod";
 import { test } from "../support/fixtures";
 import { expectVisibleAgentSurfacesIdle } from "../support/helpers/agent-stream";
@@ -34,8 +34,63 @@ const ROLLOUT_QUESTION = "Which rollout should we use?";
 const SUCCESS_QUESTION = "What success criteria should we use?";
 const REPO_URL_QUESTION = "What is the GitHub private repo URL to push to?";
 const COMMIT_MESSAGE_QUESTION = "What should the first commit message be?";
+const LINKED_QUESTION = "Sign in at https://example.com/login, then follow the setup guide. Done?";
+
+function selectedText(page: Page) {
+  return page.evaluate(() => window.getSelection()?.toString().trim());
+}
 
 test.describe("Question prompt pagination", () => {
+  test("question links open without answering, and the question text is selectable", async ({
+    page,
+    context,
+  }) => {
+    test.setTimeout(180_000);
+    await context.route("https://example.com/**", (route) =>
+      route.fulfill({ status: 200, body: "ok" }),
+    );
+
+    const session = await seedMockAgentWorkspace({
+      repoPrefix: "question-links-",
+      title: "Question links e2e",
+      initialPrompt: "Emit synthetic questions with links.",
+    });
+
+    try {
+      await openAgentRoute(page, session);
+      await waitForQuestionPrompt(page, 120_000);
+
+      const card = page.getByTestId("question-form-card").first();
+      const question = card.getByTestId("question-form-current-question");
+      await expect(question).toHaveText(LINKED_QUESTION);
+      await expect(question.getByRole("link", { name: "https://example.com/login" })).toBeVisible();
+      await expect(question.getByRole("link", { name: "the setup guide" })).toBeVisible();
+
+      const bounds = await question.boundingBox();
+      if (!bounds) throw new Error("Question text is not visible");
+      const y = bounds.y + bounds.height / 2;
+      await page.mouse.move(bounds.x + 1, y);
+      await page.mouse.down();
+      await page.mouse.move(bounds.x + bounds.width - 1, y, { steps: 12 });
+      await page.mouse.up();
+      await expect.poll(() => selectedText(page)).toBe(LINKED_QUESTION);
+
+      const popup = context.waitForEvent("page");
+      await question.getByRole("link", { name: "the setup guide" }).click();
+      await expect.poll(async () => (await popup).url()).toBe("https://example.com/setup");
+
+      await expect(page.getByTestId("question-form-card")).toHaveCount(1);
+      for (const option of ["Done", "Not yet"]) {
+        await expect(card.getByRole("radio", { name: option })).toHaveAttribute(
+          "aria-checked",
+          "false",
+        );
+      }
+    } finally {
+      await session.cleanup();
+    }
+  });
+
   test("shows one question at a time with numbered navigation", async ({ page }) => {
     test.setTimeout(180_000);
 

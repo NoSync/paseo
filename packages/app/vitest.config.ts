@@ -190,6 +190,10 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "test-stubs/reanimated-validate-worklets-version.ts"),
       },
       {
+        find: /^expo-clipboard$/,
+        replacement: path.resolve(__dirname, "test-stubs/expo-clipboard.ts"),
+      },
+      {
         find: /^expo-linking$/,
         replacement: path.resolve(__dirname, "test-stubs/expo-linking.ts"),
       },

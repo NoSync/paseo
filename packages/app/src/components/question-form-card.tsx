@@ -12,6 +12,7 @@ import { isWeb } from "@/constants/platform";
 import { EditingTextInput as TextInput } from "@/components/ui/text-input";
 import type { EditingTextInputHandle } from "@/components/ui/text-input/types";
 import { ScrollableCodeSurface } from "@/components/ui/scrollable-code-surface";
+import { MarkdownRenderer } from "@/components/markdown/renderer";
 import {
   areQuestionsAnswered,
   buildQuestionFormAnswers,
@@ -522,10 +523,6 @@ export function QuestionFormCard({
     ],
     [theme.colors.surface1, theme.colors.border],
   );
-  const questionTextStyle = useMemo(
-    () => [styles.questionText, { color: theme.colors.foreground }],
-    [theme.colors.foreground],
-  );
   // Single-select radios need a group; checkboxes are valid standalone.
   const optionsGroupAccessibility = useMemo(
     () =>
@@ -570,9 +567,9 @@ export function QuestionFormCard({
         onSelect={handleSelectQuestion}
       />
       <View style={styles.questionHeader}>
-        <Text testID="question-form-current-question" style={questionTextStyle}>
-          {activeQuestion?.question}
-        </Text>
+        <View testID="question-form-current-question" style={styles.questionText}>
+          <MarkdownRenderer text={questions[resolvedActiveQuestionIndex].question} compact />
+        </View>
       </View>
 
       {activeQuestion ? (
@@ -675,9 +672,6 @@ const styles = StyleSheet.create((theme) => ({
   },
   questionText: {
     flex: 1,
-    fontSize: theme.fontSize.base,
-    fontWeight: theme.fontWeight.normal,
-    lineHeight: 22,
   },
   optionsWrap: {
     gap: theme.spacing[1],
