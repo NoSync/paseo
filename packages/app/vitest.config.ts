@@ -23,9 +23,14 @@ export default defineConfig({
       name: "markdown-wasm-commonjs-export",
       transform(source, id) {
         // The ESM package contains a CommonJS WASM factory. Metro handles the
-        // interop; Vite needs the factory exported when serving it unbundled.
+        // interop; Vite needs an ESM export instead of the CommonJS trailer.
         if (!id.endsWith("/lib/module/web/wasm/md4c.js")) return;
-        return { code: `${source}\nexport default createMd4cModule;`, map: null };
+        const trailer = source.lastIndexOf("\nif (typeof exports === 'object'");
+        if (trailer < 0) throw new Error("Markdown WASM CommonJS trailer was not found");
+        return {
+          code: `${source.slice(0, trailer)}\nexport default createMd4cModule;`,
+          map: null,
+        };
       },
     },
     {
