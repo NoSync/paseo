@@ -16,6 +16,17 @@ const resolvePackageEntry = (packageName: string) => {
 };
 
 export default defineConfig({
+  plugins: [
+    {
+      name: "markdown-wasm-commonjs-export",
+      transform(source, id) {
+        // The ESM package contains a CommonJS WASM factory. Metro handles the
+        // interop; Vite needs the factory exported when serving it unbundled.
+        if (!id.endsWith("/lib/module/web/wasm/md4c.js")) return;
+        return { code: `${source}\nexport default createMd4cModule;`, map: null };
+      },
+    },
+  ],
   test: {
     environment: "node",
     exclude: [...configDefaults.exclude, "e2e/**"],
@@ -65,6 +76,7 @@ export default defineConfig({
       deps: {
         fallbackCJS: true,
         inline: [
+          "react-native-enriched-markdown",
           "zustand",
           "@tanstack/react-query",
           "react-native-web",
@@ -79,6 +91,19 @@ export default defineConfig({
   // so it scans the native files and dies on imports react-native-web has no answer for.
   // Unbundled, the same imports go through the resolver below and land on the web files.
   optimizeDeps: {
+    esbuildOptions: {
+      resolveExtensions: [
+        ".web.js",
+        ".web.jsx",
+        ".web.ts",
+        ".web.tsx",
+        ".js",
+        ".jsx",
+        ".ts",
+        ".tsx",
+        ".json",
+      ],
+    },
     // Bundle the CJS dependencies of the excluded gesture-handler package for the browser.
     include: [
       "react/jsx-runtime",
@@ -86,6 +111,7 @@ export default defineConfig({
       "react-native-gesture-handler > invariant",
     ],
     exclude: [
+      "react-native-enriched-markdown",
       "react-native-reanimated",
       "react-native-gesture-handler",
       "react-native-keyboard-controller",
